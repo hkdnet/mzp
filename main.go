@@ -13,6 +13,17 @@ var (
 	logger *log.Logger
 )
 
+type gitStatus struct {
+	branch string
+}
+
+func fetchGitStatus() (*gitStatus, error) {
+	ret := &gitStatus{
+		branch: "master",
+	}
+	return ret, nil
+}
+
 func shorthandPwd() (string, error) {
 	s, err := os.Getwd()
 	if err != nil {
@@ -41,7 +52,11 @@ func run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "PROMPT='%n@%m " + sp + " %% '", nil
+	gs, err := fetchGitStatus()
+	if err != nil {
+		return "", err
+	}
+	return "PROMPT='%n@%m " + sp + " " + gs.branch + " %% '", nil
 }
 
 func init() {
