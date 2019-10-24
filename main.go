@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 var (
-	home string
+	home   string
+	logger *log.Logger
 )
 
 func shorthandPwd() (string, error) {
@@ -48,6 +50,16 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	logpath := filepath.Join(home, ".mzp", "mzp.log")
+	err = os.MkdirAll(filepath.Dir(logpath), 0777)
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.OpenFile(logpath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+	if err != nil {
+		panic(err)
+	}
+	logger = log.New(f, "", log.LstdFlags)
 }
 
 func main() {
