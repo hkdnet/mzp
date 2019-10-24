@@ -65,6 +65,7 @@ func init() {
 func main() {
 	s, err := run()
 	if err != nil {
+		logger.Println(err)
 		fmt.Print("PROMPT='failed > '")
 		os.Exit(1)
 	}
