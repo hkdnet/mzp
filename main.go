@@ -41,7 +41,7 @@ func run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "PROMPT='%n@%m " + sp + " %# '", nil
+	return "PROMPT='%n@%m " + sp + " %% '", nil
 }
 
 func init() {
