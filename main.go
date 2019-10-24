@@ -22,7 +22,7 @@ func shorthandPwd() (string, error) {
 		s = strings.Replace(s, home, "~", 1)
 	}
 	ss := strings.Split(s, string(filepath.Separator))
-	for i := 0; i < len(ss)-2; i++ {
+	for i := 0; i < len(ss)-1; i++ {
 		s := ss[i]
 		if len(s) == 0 {
 			continue
@@ -65,6 +65,7 @@ func init() {
 func main() {
 	s, err := run()
 	if err != nil {
+		logger.Println(err)
 		fmt.Print("PROMPT='failed > '")
 		os.Exit(1)
 	}
