@@ -6,18 +6,45 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
+
+	"gopkg.in/src-d/go-git.v4"
 )
 
 var (
 	home   string
+	pwd    string
 	logger *log.Logger
+	cfg    *config
 )
 
-func shorthandPwd() (string, error) {
-	s, err := os.Getwd()
+type gitStatus struct {
+	branch string
+}
+
+type config struct {
+	gitExecutablePath string
+}
+
+func fetchGitStatus() (*gitStatus, error) {
+	repo, err := git.PlainOpen(".")
 	if err != nil {
-		return "", err
+		return nil, errors.Wrap(err, "cannot open git")
 	}
+	head, err := repo.Head()
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot fetch HEAD")
+	}
+	refName := head.Name()
+	ret := &gitStatus{
+		branch: refName.Short(),
+	}
+	return ret, nil
+}
+
+func shorthandPwd() (string, error) {
+	s := pwd
 	if strings.Index(s, home) == 0 { // start with home dir
 		s = strings.Replace(s, home, "~", 1)
 	}
@@ -41,7 +68,11 @@ func run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "PROMPT='%n@%m " + sp + " %# '", nil
+	gs, err := fetchGitStatus()
+	if err != nil {
+		return "", err
+	}
+	return "PROMPT='%n@%m " + sp + " " + gs.branch + " %% '", nil
 }
 
 func init() {
@@ -60,6 +91,11 @@ func init() {
 		panic(err)
 	}
 	logger = log.New(f, "", log.LstdFlags)
+
+	pwd, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
