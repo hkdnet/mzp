@@ -1,3 +1,3 @@
 bin/mzp: main.go
 	mkdir -p $$(basename $@)
-	go build -o $@ $^
+	GO111MODULE=on go build -o $@ $^
