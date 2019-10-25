@@ -19,12 +19,19 @@ var (
 	cfg    *config
 )
 
+func (cc *colorConfig) colorize(s string) string {
+	return fmt.Sprintf("\u001b[38;5;%dm\u001b[48;5;%dm %s \u001b[0m", cc.fg, cc.bg, s)
+}
+
 type gitStatus struct {
 	branch string
 }
-
+type colorConfig struct {
+	fg int16
+	bg int16
+}
 type config struct {
-	gitExecutablePath string
+	gitColor colorConfig
 }
 
 func fetchGitStatus() (*gitStatus, error) {
@@ -72,7 +79,7 @@ func run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "PROMPT='%n@%m " + sp + " " + gs.branch + " %% '", nil
+	return "PROMPT='%n@%m " + sp + " " + cfg.gitColor.colorize(gs.branch) + " %% '", nil
 }
 
 func init() {
@@ -95,6 +102,13 @@ func init() {
 	pwd, err = os.Getwd()
 	if err != nil {
 		panic(err)
+	}
+
+	cfg = &config{
+		gitColor: colorConfig{
+			bg: 42,
+			fg: 0,
+		},
 	}
 }
 
