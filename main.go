@@ -34,11 +34,15 @@ type config struct {
 type builder interface {
 	build() (string, error)
 }
+type exprBuilder interface {
+	buildExpr() (string, error)
+}
+
 type promptBuilder struct {
 	builders []builder
 }
 
-func (pb *promptBuilder) build() (string, error) {
+func (pb *promptBuilder) buildExpr() (string, error) {
 	ss := make([]string, len(pb.builders))
 	for idx, b := range pb.builders {
 		s, err := b.build()
@@ -56,7 +60,7 @@ type rpromptBuilder struct {
 	builders []builder
 }
 
-func (rpb *rpromptBuilder) build() (string, error) {
+func (rpb *rpromptBuilder) buildExpr() (string, error) {
 	return "RPROMPT=''", nil
 }
 
@@ -105,24 +109,25 @@ func (gb *gitBuilder) build() (string, error) {
 }
 
 func run() (string, error) {
-	pb := &promptBuilder{
-		builders: []builder{
-			&hostAndUserBuilder{},
-			&shorthandPwdBuilder{},
-			&gitBuilder{},
+	exprBuiders := []exprBuilder{
+		&promptBuilder{
+			builders: []builder{
+				&hostAndUserBuilder{},
+				&shorthandPwdBuilder{},
+				&gitBuilder{},
+			},
 		},
+		&rpromptBuilder{},
 	}
-	rpb := &rpromptBuilder{}
-	pbExpr, err := pb.build()
-	if err != nil {
-		return "", err
+	exprs := make([]string, len(exprBuiders))
+	for idx, eb := range exprBuiders {
+		expr, err := eb.buildExpr()
+		if err != nil {
+			return "", err
+		}
+		exprs[idx] = expr
 	}
-	rpbExpr, err := rpb.build()
-	if err != nil {
-		return "", err
-	}
-
-	return pbExpr + " " + rpbExpr, nil
+	return strings.Join(exprs, " "), nil
 }
 
 func init() {
