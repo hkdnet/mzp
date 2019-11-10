@@ -23,9 +23,6 @@ func (cc *colorConfig) colorize(s string) string {
 	return fmt.Sprintf("\u001b[38;5;%dm\u001b[48;5;%dm %s \u001b[0m", cc.fg, cc.bg, s)
 }
 
-type gitStatus struct {
-	branch string
-}
 type colorConfig struct {
 	fg int16
 	bg int16
@@ -34,23 +31,44 @@ type config struct {
 	gitColor colorConfig
 }
 
-func fetchGitStatus() (*gitStatus, error) {
-	repo, err := git.PlainOpen(".")
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot open git")
-	}
-	head, err := repo.Head()
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot fetch HEAD")
-	}
-	refName := head.Name()
-	ret := &gitStatus{
-		branch: refName.Short(),
-	}
-	return ret, nil
+type builder interface {
+	build() (string, error)
+}
+type promptBuilder struct {
+	builders []builder
 }
 
-func shorthandPwd() (string, error) {
+func (pb *promptBuilder) build() (string, error) {
+	ss := make([]string, len(pb.builders))
+	for idx, b := range pb.builders {
+		s, err := b.build()
+		if err != nil {
+			return "", err
+		}
+		ss[idx] = s
+	}
+	expr := strings.Join(ss, " ")
+
+	return "PROMPT='" + expr + " %% '", nil
+}
+
+type rpromptBuilder struct {
+	builders []builder
+}
+
+func (rpb *rpromptBuilder) build() (string, error) {
+	return "RPROMPT=''", nil
+}
+
+type hostAndUserBuilder struct{}
+
+func (b *hostAndUserBuilder) build() (string, error) {
+	return "%n@%m", nil
+}
+
+type shorthandPwdBuilder struct{}
+
+func (b *shorthandPwdBuilder) build() (string, error) {
 	s := pwd
 	if strings.Index(s, home) == 0 { // start with home dir
 		s = strings.Replace(s, home, "~", 1)
@@ -70,16 +88,41 @@ func shorthandPwd() (string, error) {
 	return filepath.Join(ss...), nil
 }
 
+type gitBuilder struct{}
+
+func (gb *gitBuilder) build() (string, error) {
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		return "", errors.Wrap(err, "cannot open git")
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return "", errors.Wrap(err, "cannot fetch HEAD")
+	}
+	refName := head.Name()
+
+	return cfg.gitColor.colorize(refName.Short()), nil
+}
+
 func run() (string, error) {
-	sp, err := shorthandPwd()
+	pb := &promptBuilder{
+		builders: []builder{
+			&hostAndUserBuilder{},
+			&shorthandPwdBuilder{},
+			&gitBuilder{},
+		},
+	}
+	rpb := &rpromptBuilder{}
+	pbExpr, err := pb.build()
 	if err != nil {
 		return "", err
 	}
-	gs, err := fetchGitStatus()
+	rpbExpr, err := rpb.build()
 	if err != nil {
 		return "", err
 	}
-	return "PROMPT='%n@%m " + sp + " " + cfg.gitColor.colorize(gs.branch) + " %% '", nil
+
+	return pbExpr + " " + rpbExpr, nil
 }
 
 func init() {
