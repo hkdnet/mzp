@@ -97,6 +97,9 @@ type gitBuilder struct{}
 func (gb *gitBuilder) build() (string, error) {
 	repo, err := git.PlainOpen(".")
 	if err != nil {
+		if err == git.ErrRepositoryNotExists {
+			return "no git", nil
+		}
 		return "", errors.Wrap(err, "cannot open git")
 	}
 	head, err := repo.Head()
