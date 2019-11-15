@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"gopkg.in/src-d/go-git.v4"
 )
 
@@ -100,11 +98,13 @@ func (gb *gitBuilder) build() (string, error) {
 		if err == git.ErrRepositoryNotExists {
 			return "no git", nil
 		}
-		return "", errors.Wrap(err, "cannot open git")
+		logger.Println("cannot open git:", err)
+		return cfg.gitColor.colorize("?"), nil
 	}
 	head, err := repo.Head()
 	if err != nil {
-		return "", errors.Wrap(err, "cannot fetch HEAD")
+		logger.Println("cannot fetch HEAD:", err)
+		return cfg.gitColor.colorize("?"), nil
 	}
 	refName := head.Name()
 
